@@ -247,7 +247,10 @@ someArithmeticCalculations =
     - если n < 0, то "negative"
 -}
 tellSign :: Int -> String
-tellSign n = error "not implemented"
+tellSign n
+    | n == 0    = "zero"
+    | n > 0     = "positive"
+    | otherwise = "negative"
 
 {-
   `howManyDigits` возвращает количество цифр целого числа `n`:
@@ -256,8 +259,10 @@ tellSign n = error "not implemented"
     - если n >= 100, то "three-digit or more"
 -}
 howManyDigits :: Int -> String
-howManyDigits n = error "not implemented"
-
+howManyDigits n
+    | n < 10 = "single"
+    | n < 100 = "two-digit"
+    | otherwise = "three-digit or more"
 {-
   `describeNumber` возвращает полное описание целого числа, используя
   функции `tellSign` и `howManyDigits`:
@@ -267,7 +272,10 @@ howManyDigits n = error "not implemented"
     - если n >= 100, то "positive three-digit or more"
 -}
 describeNumber :: Int -> String
-describeNumber n = error "not implemented"
+describeNumber n = a ++ " " ++ b
+    where
+        a = tellSign n
+        b = howManyDigits . abs $ n
 
 -- </Задачи для самостоятельного решения>
 
@@ -303,7 +311,9 @@ makeZero x =
   больших чисел.
 -}
 factorial :: Integer -> Integer
-factorial n = error "not implemented"
+factorial n =
+  if n == 0 then 1
+  else n * (factorial (n - 1))
 
 {-
   На вход приходит целое число. Необходимо вернуть количество цифр:
@@ -312,7 +322,9 @@ factorial n = error "not implemented"
     - если n = 144545, то 6
 -}
 digitsCount :: Int -> Int
-digitsCount n = error "not implemented"
+digitsCount n = 
+  if abs n < 10 then 1
+  else 1 + digitsCount (div n 10)
 
 -- </Задачи для самостоятельного решения>
 

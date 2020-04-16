@@ -130,6 +130,11 @@ module Lecture06 where
   если нет, то докажите это (напишите, почему)
 
   *Решение*
+  Выражение `x x` представляет собой аппликацию, значит 
+  левый подтерм x должен иметь тип T1 -> T2, а правый подтерм - тип T1.
+  Согласно правилам вывода типы подтермов должны следовать из предложений в Г. 
+  Так как для x можно связать лишь один тип, получаем что T1 -> T2 == T1. 
+  Но это невозможно, тип не может служить подвыражением самого себя.
 -}
 -- </Задачи для самостоятельного решения>
 
@@ -326,7 +331,7 @@ module Lecture06 where
   Убедитесь, что selfApp работает. Приведите терм `selfApp id` в нормальную форму
   и запишите все шаги β-редукции ->β.
 
-  selfApp id = ... ->β ...
+  selfApp id = λx:∀X.X->X.x [∀X.X->X] x ->β λx:[∀X.X->X]->[∀Y.Y->Y].x x ->β λx:[∀X.X->X]->[∀Y.Y->Y].x x
 -}
 -- </Задачи для самостоятельного решения>
 
@@ -578,17 +583,16 @@ module Lecture06 where
 -}
 
 f :: [a] -> Int
-f = error "not implemented"
+f xs = length xs
 
 g :: (a -> b)->[a]->[b]
-g = error "not implemented"
+g = map
 
 q :: a -> a -> a
-q x y = error "not implemented"
+q x y = asTypeOf x y
 
 p :: (a -> b) -> (b -> c) -> (a -> c)
-p f g = error "not implemented"
-
+p f g = g . f
 {-
   Крестики-нолики Чёрча.
 
@@ -624,7 +628,10 @@ createRow x y z = \case
   Third -> z
 
 createField :: Row -> Row -> Row -> Field
-createField x y z = error "not implemented"
+createField x y z = \case
+  First -> x
+  Second -> y
+  Third -> z
 
 -- Чтобы было с чего начинать проверять ваши функции
 emptyField :: Field
@@ -633,17 +640,46 @@ emptyField = createField emptyLine emptyLine emptyLine
     emptyLine = createRow Empty Empty Empty
 
 setCellInRow :: Row -> Index -> Value -> Row
-setCellInRow r i v = error "not implemented"
-
+setCellInRow r i v = \ind -> if i == ind then v else r ind
+  
 -- Возвращает новое игровое поле, если клетку можно занять.
 -- Возвращает ошибку, если место занято.
 setCell :: Field -> Index -> Index -> Value -> Either String Field
-setCell field i j v = error "not implemented"
+setCell field i j v = if field i j == Empty then Right newField else Left error
+  where
+    error = "There is '"++ show (field i j)++"' on " ++ show i ++ " " ++ show j
+    newField = \this -> if i == this then setCellInRow (field i) j v else field this
 
 data GameState = InProgress | Draw | XsWon | OsWon deriving (Eq, Show)
 
+isCross :: Value -> Bool
+isCross Cross = True
+isCross _ = False
+
+isZero :: Value -> Bool
+isZero Zero = True
+isZero _ = False
+
+isEmpty :: Value -> Bool
+isEmpty Empty = True
+isEmpty _ = False
+
 getGameState :: Field -> GameState
-getGameState field = error "not implemented"
+getGameState field
+   | any (all isCross) results = XsWon
+   | any (all isZero) results = OsWon
+   | any (any isEmpty) results = InProgress
+   | otherwise = Draw
+   where
+     getValue (i, j) = field i j
+     indexes = [First, Second, Third]
+     rowsIndexes = [[(i, j) | j <- indexes] | i <- indexes]
+     columnsIndexes = [[(i, j) | i <- indexes] | j <- indexes]
+     mainDiagonal = zip indexes indexes
+     reverseDiagonal = zip indexes $ reverse indexes
+     lines = [mainDiagonal, reverseDiagonal] ++ rowsIndexes ++ columnsIndexes   
+     results = map (map getValue) lines
+    
 
 -- </Задачи для самостоятельного решения>
 

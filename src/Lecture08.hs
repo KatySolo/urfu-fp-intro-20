@@ -41,18 +41,20 @@ import qualified Data.IntMap as Map
 data Stack a = Stack [a] deriving (Eq, Show)
 
 createStack :: Stack a
-createStack = error "not implemented"
+createStack = Stack []
 
 -- Обратите внимание, что все структуры данных неизменяемые (immutable). Значит, если операция
 -- предполагает изменение структуры, то она просто должна возвращать новую уже изменённую версию.
 push :: Stack a -> a -> Stack a
-push stack x = error "not implemented"
+push (Stack xs) x = Stack(x:xs)
 
 pop :: Stack a -> Maybe (Stack a)
-pop stack = error "not implemented"
+pop (Stack []) = Nothing
+pop (Stack (x:xs)) = Just (Stack xs)
 
 peek :: Stack a -> Maybe a
-peek stack = error "not implemented"
+peek (Stack []) = Nothing
+peek (Stack (x:xs)) = Just x
 
 -- </Задачи для самостоятельного решения>
 
@@ -170,17 +172,20 @@ dequeue' (q:qs) = (q, qs)             -- возвращаем (элемент, �
 data Queue a = Queue [a] [a] deriving (Eq, Show)
 
 createQueue :: Queue a
-createQueue = error "not implemented"
+createQueue = Queue [] []
 
 enqueue :: Queue a -> a -> Queue a
-enqueue queue x = error "not implemented"
+enqueue (Queue a b) c = Queue(c:a) b
 
 -- если очередь пустая возвращает ошибку
 dequeue :: Queue a -> (a, Queue a)
-dequeue queue = error "not implemented"
+dequeue (Queue [] []) = error "empty queue"
+dequeue (Queue as (b:bs)) = (b, Queue as bs)
+dequeue (Queue xs []) = dequeue (Queue [] $ reverse xs)
 
 isEmpty :: Queue a -> Bool
-isEmpty queue = error "not implemented"
+isEmpty (Queue [] []) = True
+isEmpty _ = False
 
 -- </Задачи для самостоятельного решения>
 
@@ -378,14 +383,53 @@ emptySet = Set.intersection evenSet oddSet
 
 -- Названия методов можно менять
 class IntArray a where
-  fromList :: [(Int, Int)] -> a    -- создать из списка пар [(index, value)]
-  toList :: a -> [(Int, Int)]      -- преобразовать в список пар [(index, value)]
-  update :: a -> Int -> Int -> a   -- обновить элемент по индексу
-  (#) :: a -> Int -> Int           -- получить элемент по индексу
+   fromList :: [(Int, Int)] -> a   
+   toList :: a -> [(Int, Int)]     
+   update :: a -> Int -> Int -> a 
+   (#) :: a -> Int -> Int          
+   generate :: Int -> Int -> a
+   max' :: a -> Int 
+   increment :: a -> Int -> a
+   increment arr i = update arr i $ arr # i + 1
 
--- Сортирует массив целых неотрицательных чисел по возрастанию
+instance IntArray [Int] where
+   generate = replicate
+   (#) arr ind = arr !! ind
+   update xs i x = update' xs i x 0 where
+    update' [] _ _ _ = error "Out of range"
+    update' (x:xs) i1 y i2
+       | i1 == i2  = y : xs
+       | otherwise = x : (update' xs i1 y $ i2 + 1)
+   fromList pairs = foldl (\list -> \(i, x) -> update list i x) (replicate (length pairs) 0) pairs
+   toList list = zip [i | i <- [0..(length list - 1)]] list
+   max' = maximum
+
+instance IntArray (Array Int Int) where
+  generate n x = array (0, n) [(i, x) | i <- [0..n]]
+  (#) arr ind = arr ! ind
+  toList = assocs
+  fromList pairs = array (0, maximum [i|(i,v) <- pairs]) pairs
+  update xs i x = xs // [(i, x)]
+  max' = maximum
+
+
+instance IntArray (Map.IntMap Int) where
+   generate n x = Map.fromList [(i, x) | i <- [0..n]]
+   fromList = Map.fromList
+   toList = Map.toList
+   (#) xs i = xs Map.! i
+   update xs i x = Map.update (\_ -> Just x) i xs
+   max' = maximum
+
+
+
+ -- Сортирует массив целых неотрицательных чисел по возрастанию
 countingSort :: forall a. IntArray a => [Int] -> [Int]
-countingSort = error "not implemented"
+countingSort [] = []
+countingSort xs = concat results where
+  results = [generate n x | (x, n) <- toList counts]
+  counts = foldl increment start xs
+  start = fromList @a [(i, 0) | i <- [0..(max' xs)]]
 
 {-
   Tак можно запустить функцию сортировки с использованием конкретной реализацией массива:
@@ -402,7 +446,7 @@ sorted = countingSort @[Int] [2,2,2,3,3,3,1,1,1]
 
 -- </Задачи для самостоятельного решения>
 
-{- Сылки
+{- Ссылки
 
   - "Purely Functional Data Structures"         Chris Okasaki https://www.cs.cmu.edu/~rwh/theses/okasaki.pdf
   - "Functional Data Structures and Algorithms" Milan Straka  http://fox.ucw.cz/papers/thesis/thesis.pdf
